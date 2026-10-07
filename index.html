@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="ru" class="h-full bg-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Web Builder - Конструктор Сайтов</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.03);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        /* Visual Builder Highlights */
+        .builder-element {
+            position: relative;
+            transition: outline 0.15s ease, box-shadow 0.15s ease;
+            min-height: 12px;
+        }
+
+        .builder-element:hover {
+            outline: 1px dashed #3b82f6 !important;
+            outline-offset: -1px;
+            cursor: pointer;
+        }
+
+        .builder-element.selected-node {
+            outline: 2px solid #2563eb !important;
+            outline-offset: -2px;
+        }
+
+        /* Canvas Grid Pattern Background */
+        .canvas-bg-pattern {
+            background-color: #f1f5f9;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 16px 16px;
+        }
+
+        /* Canvas Frame Viewport Transitions */
+        .canvas-viewport {
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Active Text Editing */
+        .builder-element[contenteditable="true"] {
+            outline: 2px solid #10b981 !important;
+            cursor: text;
+        }
+
+        /* Modal Blur */
+        .backdrop-blur-custom {
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 overflow-hidden bg-slate-900">
+
+    <div id="app" class="h-full w-full flex flex-col">
+
+        <!-- ==================== DASHBOARD VIEW ==================== -->
+        <div id="view-dashboard" class="h-full w-full bg-slate-50 overflow-y-auto flex flex-col">
+            <!-- Dashboard Header -->
+            <header class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold text-xl shadow-lg shadow-brand-500/30">
+                        <i class="fa-solid font-bold fa-cubes"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-900 tracking-tight">CraftWeb Builder</h1>
+                        <p class="text-xs text-slate-500">Визуальный редактор сайтов без кода</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <button id="btn-dashboard-new" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-plus text-sm"></i>
+                        Создать сайт
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Content Area -->
+            <main class="max-w-7xl w-full mx-auto p-8 flex-1">
+                <div class="mb-8 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900">Мои проекты</h2>
+                        <p class="text-slate-500 text-sm mt-1">Управляйте вашими веб-сайтами и создавайте новые</p>
+                    </div>
+                    <div class="text-sm text-slate-500">
+                        Всего сайтов: <span id="site-count" class="font-semibold text-slate-800">0</span>
+                    </div>
+                </div>
+
+                <!-- Projects Grid -->
+                <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Project cards inserted dynamically -->
+                </div>
+            </main>
+        </div>
+
+        <!-- ==================== VISUAL EDITOR VIEW ==================== -->
+        <div id="view-editor" class="h-full w-full flex flex-col hidden">
+            
+            <!-- Editor Top Bar -->
+            <header class="h-14 bg-white border-b border-slate-200 px-4 flex items-center justify-between z-20 shrink-0">
+                <!-- Left Section: Back & Title -->
+                <div class="flex items-center gap-3">
+                    <button id="btn-back-dashboard" class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition" title="Вернуться к проектам">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <div class="h-4 w-px bg-slate-200"></div>
+                    <div class="flex items-center gap-2">
+                        <input id="input-site-title" type="text" class="font-semibold text-slate-800 bg-transparent hover:bg-slate-100 focus:bg-white border border-transparent focus:border-slate-300 rounded px-2 py-1 text-sm focus:outline-none transition" value="Мой новый сайт" />
+                        <span id="save-status-badge" class="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <i class="fa-solid fa-check text-emerald-500 text-[10px]"></i> Сохранено
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Center Section: Device Switcher & Page Dropdown -->
+                <div class="flex items-center gap-4">
+                    <!-- Responsive Switcher -->
+                    <div class="bg-slate-100 p-1 rounded-lg flex items-center gap-1 border border-slate-200">
+                        <button id="dev-desktop" class="device-btn active px-3 py-1 text-xs font-medium rounded text-slate-700 bg-white shadow-sm flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-desktop"></i> ПК
+                        </button>
+                        <button id="dev-tablet" class="device-btn px-3 py-1 text-xs font-medium rounded text-slate-500 hover:text-slate-800 flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-tablet-screen-button"></i> Планшет
+                        </button>
+                        <button id="dev-mobile" class="device-btn px-3 py-1 text-xs font-medium rounded text-slate-500 hover:text-slate-800 flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-mobile-screen"></i> Мобильный
+                        </button>
+                    </div>
+
+                    <div class="h-4 w-px bg-slate-200"></div>
+
+                    <!-- Page Selector -->
+                    <div class="flex items-center gap-2">
+                        <i class="fa-regular fa-file text-slate-400 text-xs"></i>
+                        <select id="editor-page-select" class="text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-500">
+                            <!-- Options rendered dynamically -->
+                        </select>
+                    </div>
+
+                    <!-- Undo / Redo -->
+                    <div class="flex items-center gap-1">
+                        <button id="btn-undo" class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition disabled:opacity-30" title="Отменить (Ctrl+Z)">
+                            <i class="fa-solid fa-rotate-left text-xs"></i>
+                        </button>
+                        <button id="btn-redo" class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition disabled:opacity-30" title="Повторить (Ctrl+Y)">
+                            <i class="fa-solid fa-rotate-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Section: Actions -->
+                <div class="flex items-center gap-2">
+                    <button id="btn-preview-mode" class="px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-eye"></i> Предпросмотр
+                    </button>
+                    <button id="btn-view-code" class="px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-code"></i> Код
+                    </button>
+                    <button id="btn-download-html" class="px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition flex items-center gap-1.5" title="Скачать код">
+                        <i class="fa-solid fa-download"></i> Скачать
+                    </button>
+                    <button id="btn-publish" class="px-4 py-1.5 text-xs font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow-sm transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-globe"></i> Опубликовать
+                    </button>
+                </div>
+            </header>
+
+            <!-- Editor Main Body -->
+            <div class="flex-1 flex overflow-hidden">
+                
+                <!-- LEFT SIDEBAR: Elements, Sections, Layers, Pages, Assets -->
+                <aside class="w-80 bg-white border-r border-slate-200 flex flex-col z-10 shrink-0">
+                    <!-- Sidebar Tabs -->
+                    <div class="flex border-b border-slate-200 bg-slate-50">
+                        <button class="left-tab-btn active flex-1 py-3 text-xs font-medium text-brand-600 border-b-2 border-brand-600 transition" data-tab="elements" title="Элементы">
+                            <i class="fa-solid fa-plus block text-sm mb-1"></i> Элементы
+                        </button>
+                        <button class="left-tab-btn flex-1 py-3 text-xs font-medium text-slate-500 hover:text-slate-800 transition" data-tab="sections" title="Секции">
+                            <i class="fa-solid fa-cubes-stacked block text-sm mb-1"></i> Секции
+                        </button>
+                        <button class="left-tab-btn flex-1 py-3 text-xs font-medium text-slate-500 hover:text-slate-800 transition" data-tab="layers" title="Слои">
+                            <i class="fa-solid fa-layer-group block text-sm mb-1"></i> Слои
+                        </button>
+                        <button class="left-tab-btn flex-1 py-3 text-xs font-medium text-slate-500 hover:text-slate-800 transition" data-tab="pages" title="Страницы">
+                            <i class="fa-solid fa-copy block text-sm mb-1"></i> Страницы
+                        </button>
+                        <button class="left-tab-btn flex-1 py-3 text-xs font-medium text-slate-500 hover:text-slate-800 transition" data-tab="assets" title="Медиа">
+                            <i class="fa-regular fa-images block text-sm mb-1"></i> Медиа
+                        </button>
+                    </div>
+
+                    <!-- Sidebar Content Panels -->
+                    <div class="flex-1 overflow-y-auto p-4">
+                        
+                        <!-- TAB: ELEMENTS -->
+                        <div id="tab-elements" class="tab-content space-y-6">
+                            <!-- Typography Category -->
+                            <div>
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Текст</h3>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="add-element-btn p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-brand-500 rounded-lg cursor-pointer transition flex flex-col items-center gap-2 group" data-type="heading">
+                                        <i class="fa-solid fa-heading text-slate-500 group-hover:text-brand-600"></i>
+                                        <span class="text-xs text-slate-700 font-medium">Заголовок</span>
+                                    </div>
+                                    <div class="add-element-btn p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-brand-500 rounded-lg cursor-pointer transition flex flex-col items-center gap-2 group" data-type="paragraph">
+                                        <i class="fa-solid fa-paragraph text-slate-500 group-hover:text-brand-600"></i>
+                                        <span class="text-xs text-slate-700 font-medium">Параграф</span>
+                                    </div>
+                                    <div class="add-element-btn p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-brand-500 rounded-lg cursor-pointer transition flex flex-col items-center gap-2 group" data-type="text">
+                                        <i class="fa-solid fa-font text-slate-500 group-hover:text-brand-600"></i>
+                                        <span class="text-xs text-slate-700 font-medium">Текстовый блок</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Media & Buttons Category -->
+                            <div>
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Медиа и Кнопки</h3>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="add-element-btn p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-brand-500 rounded-lg cursor-pointer transition flex flex-col items-center gap-2 group" data-type="button">
+                                        <i class="fa-solid fa-rectangle-ad text-slate-500 group-hover:text-brand-600"></i>
+                                        <span class="text-xs text-slate-700 font-medium">Кнопка</span>
+                                    </div>
+                                    <div class="add-element-btn p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-brand-500 rounded-lg cursor-pointer transition flex flex-col items-center gap-2 group" data-type="image">
+                                        <i class="fa-regular fa-image text-slate-500 group-hover:text-brand-600"></i>
+                                        <span class="text-xs text-slate-700 font-medium">Картинка</span>
+                                    </div>
+                                    <div class="add-element-btn p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-brand-500 rounded-lg cursor-pointer transition flex flex-col items-center gap-2 group" data-type="icon">
+                                        <i class="fa-solid fa-icons text-slate-500 group-hover:text-brand-600"></i>
+                                        <span class="text-xs text-slate-700 font-medium">Иконка</span>
+                                    </div>
+                                    <div class="add-element-btn p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-brand-500 rounded-lg cursor-pointer transition flex flex-col items-center gap-2 group" data-type="divider">
+                                        <i class="fa-solid fa-minus text-slate-500 group-hover:text-brand-600"></i>
+                                        <span class="text-xs text-slate-700 font-medium">Разделитель</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Layout Category -->
+                            <div>
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Структура</h3>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="add-element-btn p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-brand-500 rounded-lg cursor-pointer transition flex flex-col items-center gap-2 group" data-type="container">
+                                        <i class="fa-regular fa-square text-slate-500 group-hover:text-brand-600"></i>
+                                        <span class="text-xs text-slate-700 font-medium">Контейнер</span>
+                                    </div>
+                                    <div class="add-element-btn p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-brand-500 rounded-lg cursor-pointer transition flex flex-col items-center gap-2 group" data-type="grid">
+                                        <i class="fa-solid fa-border-all text-slate-500 group-hover:text-brand-600"></i>
+                                        <span class="text-xs text-slate-700 font-medium">Сетка (2 кол.)</span>
+                                    </div>
+                                    <div class="add-element-btn p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-brand-500 rounded-lg cursor-pointer transition flex flex-col items-center gap-2 group" data-type="card">
+                                        <i class="fa-regular fa-id-card text-slate-500 group-hover:text-brand-600"></i>
+                                        <span class="text-xs text-slate-700 font-medium">Карточка</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB: SECTIONS -->
+                        <div id="tab-sections" class="tab-content hidden space-y-4">
+                            <p class="text-xs text-slate-500 mb-2">Готовые готовые блоки для быстрой сборки страниц:</p>
+                            
+                            <div class="add-section-btn p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-brand-500 rounded-xl cursor-pointer transition" data-section-type="hero">
+                                <div class="font-semibold text-xs text-slate-800 mb-1 flex items-center justify-between">
+                                    <span>Hero (Главный блок)</span>
+                                    <i class="fa-solid fa-plus text-brand-600 text-xs"></i>
+                                </div>
+                                <p class="text-[11px] text-slate-500">Заголовок, описательный текст, кнопки действий и фоновый стиль.</p>
+                            </div>
+
+                            <div class="add-section-btn p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-brand-500 rounded-xl cursor-pointer transition" data-section-type="features">
+                                <div class="font-semibold text-xs text-slate-800 mb-1 flex items-center justify-between">
+                                    <span>Преимущества (Features)</span>
+                                    <i class="fa-solid fa-plus text-brand-600 text-xs"></i>
+                                </div>
+                                <p class="text-[11px] text-slate-500">Сетка из 3 карточек с иконками, заголовками и описанием.</p>
+                            </div>
+
+                            <div class="add-section-btn p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-brand-500 rounded-xl cursor-pointer transition" data-section-type="pricing">
+                                <div class="font-semibold text-xs text-slate-800 mb-1 flex items-center justify-between">
+                                    <span>Тарифы (Pricing)</span>
+                                    <i class="fa-solid fa-plus text-brand-600 text-xs"></i>
+                                </div>
+                                <p class="text-[11px] text-slate-500">Сравнение тарифных планов с ценами и кнопками заказа.</p>
+                            </div>
+
+                            <div class="add-section-btn p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-brand-500 rounded-xl cursor-pointer transition" data-section-type="cta">
+                                <div class="font-semibold text-xs text-slate-800 mb-1 flex items-center justify-between">
+                                    <span>Призыв к действию (CTA)</span>
+                                    <i class="fa-solid fa-plus text-brand-600 text-xs"></i>
+                                </div>
+                                <p class="text-[11px] text-slate-500">Яркий баннер с фокусом на регистрацию или покупку.</p>
+                            </div>
+
+                            <div class="add-section-btn p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-brand-500 rounded-xl cursor-pointer transition" data-section-type="footer">
+                                <div class="font-semibold text-xs text-slate-800 mb-1 flex items-center justify-between">
+                                    <span>Подвал (Footer)</span>
+                                    <i class="fa-solid fa-plus text-brand-600 text-xs"></i>
+                                </div>
+                                <p class="text-[11px] text-slate-500">Нижняя часть сайта с копирайтом и ссылками.</p>
+                            </div>
+                        </div>
+
+                        <!-- TAB: LAYERS -->
+                        <div id="tab-layers" class="tab-content hidden space-y-2">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Дерево элементов</span>
+                                <span class="text-[11px] text-slate-400">Нажмите для выбора</span>
+                            </div>
+                            <div id="layers-tree-container" class="space-y-1">
+                                <!-- Dynamic tree rendered here -->
+                            </div>
+                        </div>
+
+                        <!-- TAB: PAGES -->
+                        <div id="tab-pages" class="tab-content hidden space-y-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Страницы сайта</span>
+                                <button id="btn-add-page" class="text-xs text-brand-600 font-semibold hover:underline flex items-center gap-1">
+                                    <i class="fa-solid fa-plus"></i> Новая
+                                </button>
+                            </div>
+                            <div id="pages-list" class="space-y-1">
+                                <!-- Dynamic page list -->
+                            </div>
+                        </div>
+
+                        <!-- TAB: ASSETS -->
+                        <div id="tab-assets" class="tab-content hidden space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Медиатека</span>
+                                <button id="btn-upload-asset" class="text-xs text-brand-600 font-semibold hover:underline flex items-center gap-1">
+                                    <i class="fa-solid fa-upload"></i> Загрузить
+                                </button>
+                            </div>
+                            <div id="assets-grid" class="grid grid-cols-2 gap-2">
+                                <!-- Dynamic asset thumbnails -->
+                            </div>
+                        </div>
+
+                    </div>
+                </aside>
+
+                <!-- CENTRAL CANVAS WORKSPACE -->
+                <main class="flex-1 bg-slate-200 overflow-auto canvas-bg-pattern flex flex-col items-center justify-start p-8 relative">
+                    
+                    <!-- Zoom Floating Control Bar -->
+                    <div class="fixed bottom-6 right-80 bg-white/90 backdrop-blur-custom border border-slate-200 shadow-lg rounded-full px-4 py-1.5 flex items-center gap-3 z-20 text-xs text-slate-600">
+                        <button id="zoom-out" class="hover:text-slate-900 transition"><i class="fa-solid fa-minus"></i></button>
+                        <span id="zoom-value" class="font-semibold text-slate-800">100%</span>
+                        <button id="zoom-in" class="hover:text-slate-900 transition"><i class="fa-solid fa-plus"></i></button>
+                        <div class="h-3 w-px bg-slate-300"></div>
+                        <button id="zoom-reset" class="hover:text-slate-900 transition" title="Сбросить масштаб">Reset</button>
+                    </div>
+
+                    <!-- Canvas Wrapper Viewport -->
+                    <div id="canvas-viewport" class="canvas-viewport w-[1100px] min-h-[700px] bg-white rounded-xl shadow-2xl border border-slate-200 my-auto relative transition-transform duration-150 origin-top">
+                        
+                        <!-- Floating Selected Node Actions Toolbar (Appears above selected item) -->
+                        <div id="selection-toolbar" class="hidden absolute z-30 bg-slate-900 text-white text-xs px-2.5 py-1 rounded-lg shadow-xl flex items-center gap-2 -translate-y-full mb-2">
+                            <span id="toolbar-node-tag" class="font-semibold text-slate-400 uppercase text-[10px]">div</span>
+                            <div class="h-3 w-px bg-slate-700"></div>
+                            <button id="tb-select-parent" title="Выбрать родительский элемент" class="hover:text-brand-400 p-0.5"><i class="fa-solid fa-arrow-up-from-bracket text-[11px]"></i></button>
+                            <button id="tb-move-up" title="Переместить вверх" class="hover:text-brand-400 p-0.5"><i class="fa-solid fa-arrow-up text-[11px]"></i></button>
+                            <button id="tb-move-down" title="Переместить вниз" class="hover:text-brand-400 p-0.5"><i class="fa-solid fa-arrow-down text-[11px]"></i></button>
+                            <button id="tb-duplicate" title="Дублировать" class="hover:text-brand-400 p-0.5"><i class="fa-regular fa-copy text-[11px]"></i></button>
+                            <button id="tb-delete" title="Удалить" class="hover:text-red-400 p-0.5"><i class="fa-regular fa-trash-can text-[11px]"></i></button>
+                        </div>
+
+                        <!-- Main Live Website Render Area -->
+                        <div id="website-canvas-root" class="w-full h-full min-h-[700px] p-4 relative">
+                            <!-- Website DOM nodes generated dynamically -->
+                        </div>
+
+                    </div>
+                </main>
+
+                <!-- RIGHT SIDEBAR: Settings & Inspector -->
+                <aside id="inspector-panel" class="w-80 bg-white border-l border-slate-200 flex flex-col z-10 shrink-0">
+                    <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                        <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-brand-600"></i> Настройки элемента
+                        </h2>
+                        <span id="inspector-element-tag" class="text-[10px] bg-slate-200 text-slate-700 font-mono px-2 py-0.5 rounded">None</span>
+                    </div>
+
+                    <div id="inspector-content" class="flex-1 overflow-y-auto p-4 space-y-6">
+                        <div id="no-selection-msg" class="text-center py-12 text-slate-400">
+                            <i class="fa-solid fa-arrow-pointer text-3xl mb-3 block opacity-30"></i>
+                            <p class="text-sm">Выберите элемент на холсте для редактирования параметров</p>
+                        </div>
+
+                        <div id="inspector-form" class="hidden space-y-6">
+                            
+                            <!-- Content & Text Section -->
+                            <div id="group-content" class="space-y-3">
+                                <label class="text-xs font-semibold text-slate-700 block">Текст / Содержимое</label>
+                                <textarea id="field-text-content" rows="2" class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-500 font-sans"></textarea>
+                            </div>
+
+                            <!-- Image SRC Section -->
+                            <div id="group-image-src" class="space-y-3 hidden">
+                                <label class="text-xs font-semibold text-slate-700 block">Ссылка на изображение</label>
+                                <div class="flex gap-2">
+                                    <input id="field-image-src" type="text" class="flex-1 text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-500" />
+                                    <button id="btn-browse-image" class="px-3 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 transition">Обзор</button>
+                                </div>
+                            </div>
+
+                            <hr class="border-slate-100" />
+
+                            <!-- Typography Settings -->
+                            <div id="group-typography" class="space-y-3">
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Типографика</h3>
+                                
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[11px] text-slate-500 mb-1 block">Размер (px)</label>
+                                        <input id="field-font-size" type="number" class="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg" placeholder="16" />
+                                    </div>
+                                    <div>
+                                        <label class="text-[11px] text-slate-500 mb-1 block">Толщина</label>
+                                        <select id="field-font-weight" class="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg">
+                                            <option value="300">Light (300)</option>
+                                            <option value="400">Normal (400)</option>
+                                            <option value="500">Medium (500)</option>
+                                            <option value="600">SemiBold (600)</option>
+                                            <option value="700">Bold (700)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[11px] text-slate-500 mb-1 block">Цвет текста</label>
+                                        <div class="flex items-center gap-2 border border-slate-200 rounded-lg p-1 bg-slate-50">
+                                            <input id="field-text-color" type="color" class="w-6 h-6 rounded cursor-pointer border-0 bg-transparent" />
+                                            <input id="field-text-color-hex" type="text" class="w-full text-xs bg-transparent border-0 focus:outline-none uppercase" placeholder="#000000" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="text-[11px] text-slate-500 mb-1 block">Выравнивание</label>
+                                        <div class="flex border border-slate-200 rounded-lg bg-slate-50 p-0.5">
+                                            <button class="align-btn flex-1 py-1 text-center text-xs rounded hover:bg-white text-slate-600" data-align="left"><i class="fa-solid fa-align-left"></i></button>
+                                            <button class="align-btn flex-1 py-1 text-center text-xs rounded hover:bg-white text-slate-600" data-align="center"><i class="fa-solid fa-align-center"></i></button>
+                                            <button class="align-btn flex-1 py-1 text-center text-xs rounded hover:bg-white text-slate-600" data-align="right"><i class="fa-solid fa-align-right"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="border-slate-100" />
+
+                            <!-- Background & Spacing -->
+                            <div class="space-y-3">
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Фон и Отступы</h3>
+                                
+                                <div>
+                                    <label class="text-[11px] text-slate-500 mb-1 block">Цвет фона</label>
+                                    <div class="flex items-center gap-2 border border-slate-200 rounded-lg p-1 bg-slate-50">
+                                        <input id="field-bg-color" type="color" class="w-6 h-6 rounded cursor-pointer border-0 bg-transparent" />
+                                        <input id="field-bg-color-hex" type="text" class="w-full text-xs bg-transparent border-0 focus:outline-none uppercase" placeholder="#FFFFFF" />
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[11px] text-slate-500 mb-1 block">Внутр. отступ (Padding)</label>
+                                        <input id="field-padding" type="text" class="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg" placeholder="16px" />
+                                    </div>
+                                    <div>
+                                        <label class="text-[11px] text-slate-500 mb-1 block">Внеш. отступ (Margin)</label>
+                                        <input id="field-margin" type="text" class="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg" placeholder="0px" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="border-slate-100" />
+
+                            <!-- Border & Shadow -->
+                            <div class="space-y-3">
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Границы и Тени</h3>
+                                
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[11px] text-slate-500 mb-1 block">Скругление (px)</label>
+                                        <input id="field-border-radius" type="number" class="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg" placeholder="0" />
+                                    </div>
+                                    <div>
+                                        <label class="text-[11px] text-slate-500 mb-1 block">Тень</label>
+                                        <select id="field-box-shadow" class="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg">
+                                            <option value="none">Нет</option>
+                                            <option value="0 1px 2px 0 rgb(0 0 0 / 0.05)">Низкая</option>
+                                            <option value="0 4px 6px -1px rgb(0 0 0 / 0.1)">Средняя</option>
+                                            <option value="0 10px 15px -3px rgb(0 0 0 / 0.1)">Высокая</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </aside>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ==================== MODALS ==================== -->
+    
+    <!-- Code Viewer Modal -->
+    <div id="modal-code" class="fixed inset-0 bg-slate-900/60 backdrop-blur-custom z-50 flex items-center justify-center p-6 hidden">
+        <div class="bg-slate-900 text-slate-100 rounded-2xl w-full max-w-4xl h-[80vh] flex flex-col shadow-2xl border border-slate-800">
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-code text-brand-500"></i>
+                    <h3 class="font-semibold text-sm">Исходный код страницы (HTML / CSS)</h3>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button id="btn-copy-code" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 rounded-lg transition flex items-center gap-1.5">
+                        <i class="fa-regular fa-copy"></i> Копировать код
+                    </button>
+                    <button class="modal-close text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+            </div>
+            <div class="flex-1 p-6 overflow-hidden">
+                <textarea id="code-output" readonly class="w-full h-full bg-slate-950 text-emerald-400 font-mono text-xs p-4 rounded-xl focus:outline-none border border-slate-800 overflow-auto resize-none"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Publish Modal -->
+    <div id="modal-publish" class="fixed inset-0 bg-slate-900/60 backdrop-blur-custom z-50 flex items-center justify-center p-6 hidden">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6 text-center shadow-2xl border border-slate-100">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 mb-1">Сайт успешно опубликован!</h3>
+            <p class="text-sm text-slate-500 mb-6">Ваш веб-сайт доступен в интернете по следующей ссылке:</p>
+            
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center gap-2 mb-6">
+                <input id="published-url-input" type="text" readonly class="bg-transparent text-xs text-slate-800 font-mono flex-1 focus:outline-none" value="https://mysite.craftweb.app" />
+                <button id="btn-copy-url" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium transition">
+                    Копировать
+                </button>
+            </div>
+
+            <div class="flex gap-3">
+                <button class="modal-close flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
+                    Закрыть
+                </button>
+                <a id="published-url-link" href="#" target="_blank" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-xl transition inline-flex items-center justify-center gap-1.5">
+                    Открыть сайт <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Live Preview Modal -->
+    <div id="modal-preview" class="fixed inset-0 bg-white z-50 flex flex-col hidden">
+        <div class="h-12 bg-slate-900 text-white px-6 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span>Режим предпросмотра</span>
+            </div>
+            <button id="btn-exit-preview" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition">
+                <i class="fa-solid fa-xmark mr-1"></i> Выйти из предпросмотра
+            </button>
+        </div>
+        <iframe id="preview-iframe" class="flex-1 w-full border-0"></iframe>
+    </div>
+
+    <script>
+        // Core State Store
+        const state = {
+            currentView: 'dashboard', // 'dashboard' | 'editor'
+            projects: [],
+            activeProjectId: null,
+            activePageId: null,
+            selectedNodeId: null,
+            zoomLevel: 100,
+            deviceMode: 'desktop', // 'desktop' | 'tablet' | 'mobile'
+            history: [],
+            historyIndex: -1,
+            sampleAssets: [
+                'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=800&q=80'
+            ]
+        };
+
+        // Node Generation Helper
+        function createNode(type, options = {}) {
+            const id = 'node_' + Math.random().toString(36).substr(2, 9);
+            
+            const defaults = {
+                heading: {
+                    tag: 'h2',
+                    text: 'Добро пожаловать на наш сайт',
+                    style: { fontSize: '32px', fontWeight: '700', color: '#0f172a', marginBottom: '16px', textAlign: 'left' }
+                },
+                paragraph: {
+                    tag: 'p',
+                    text: 'Создавайте невероятные веб-страницы в удобном визуальном конструкторе без программирования.',
+                    style: { fontSize: '16px', fontWeight: '400', color: '#475569', marginBottom: '20px', lineHeight: '1.6', textAlign: 'left' }
+                },
+                text: {
+                    tag: 'div',
+                    text: 'Простой текстовый блок для размещения любой информации.',
+                    style: { fontSize: '14px', color: '#334155', marginBottom: '12px' }
+                },
+                button: {
+                    tag: 'a',
+                    text: 'Начать работу',
+                    style: {
+                        display: 'inline-block',
+                        padding: '12px 28px',
+                        backgroundColor: '#2563eb',
+                        color: '#ffffff',
+                        borderRadius: '8px',
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        textDecoration: 'none',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                    }
+                },
+                image: {
+                    tag: 'img',
+                    src: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80',
+                    style: { width: '100%', borderRadius: '12px', marginBottom: '16px', objectFit: 'cover' }
+                },
+                container: {
+                    tag: 'div',
+                    style: { padding: '24px', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '16px' },
+                    children: []
+                },
+                grid: {
+                    tag: 'div',
+                    style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' },
+                    children: []
+                },
+                card: {
+                    tag: 'div',
+                    style: { padding: '24px', backgroundColor: '#ffffff', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', border: '1px solid #f1f5f9' },
+                    children: []
+                },
+                divider: {
+                    tag: 'hr',
+                    style: { border: '0', borderTop: '1px solid #e2e8f0', marginTop: '24px', marginBottom: '24px' }
+                },
+                icon: {
+                    tag: 'i',
+                    iconClass: 'fa-solid fa-star',
+                    style: { fontSize: '28px', color: '#2563eb', marginBottom: '12px', display: 'inline-block' }
+                }
+            };
+
+            const base = defaults[type] || { tag: 'div', style: {} };
+            return {
+                id,
+                type,
+                tag: base.tag,
+                text: options.text || base.text || '',
+                src: options.src || base.src || '',
+                iconClass: options.iconClass || base.iconClass || '',
+                style: JSON.parse(JSON.stringify(options.style || base.style || {})),
+                children: options.children || (base.children ? [] : undefined)
+            };
+        }
+
+        // Section Templates Generator
+        function createSectionTemplate(sectionType) {
+            if (sectionType === 'hero') {
+                const sec = createNode('container', {
+                    style: { padding: '60px 40px', backgroundColor: '#f8fafc', borderRadius: '24px', textAlign: 'center', marginBottom: '32px' }
+                });
+                const h = createNode('heading', { text: 'Создавайте сайты будущего уже сегодня', style: { fontSize: '40px', textAlign: 'center', fontWeight: '700' } });
+                const p = createNode('paragraph', { text: 'Полноценный визуальный конструктор сайтов. Никакого кода — только ваша фантазия и удобные инструменты.', style: { textAlign: 'center', fontSize: '18px' } });
+                const btn = createNode('button', { text: 'Попробовать бесплатно' });
+                sec.children.push(h, p, btn);
+                return sec;
+            }
+            if (sectionType === 'features') {
+                const sec = createNode('container', { style: { padding: '40px 20px', marginBottom: '32px' } });
+                const title = createNode('heading', { text: 'Почему выбирают нас', style: { textAlign: 'center', fontSize: '28px', marginBottom: '32px' } });
+                const grid = createNode('grid', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' } });
+
+                for (let i = 1; i <= 3; i++) {
+                    const card = createNode('card');
+                    const icon = createNode('icon', { iconClass: i === 1 ? 'fa-solid fa-bolt' : i === 2 ? 'fa-solid fa-wand-magic-sparkles' : 'fa-solid fa-shield-halved' });
+                    const cardH = createNode('heading', { text: `Преимущество ${i}`, style: { fontSize: '20px', marginBottom: '8px' } });
+                    const cardP = createNode('paragraph', { text: 'Высокая скорость работы и интуитивно понятный интерфейс для любых задач.' });
+                    card.children.push(icon, cardH, cardP);
+                    grid.children.push(card);
+                }
+                sec.children.push(title, grid);
+                return sec;
+            }
+            if (sectionType === 'pricing') {
+                const sec = createNode('container', { style: { padding: '40px 20px', backgroundColor: '#f1f5f9', borderRadius: '20px', marginBottom: '32px' } });
+                const title = createNode('heading', { text: 'Тарифные планы', style: { textAlign: 'center', fontSize: '32px', marginBottom: '24px' } });
+                const grid = createNode('grid', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' } });
+
+                const plan1 = createNode('card');
+                plan1.children.push(
+                    createNode('heading', { text: 'Базовый', style: { fontSize: '22px' } }),
+                    createNode('heading', { text: '0 $ / мес', style: { fontSize: '32px', color: '#2563eb' } }),
+                    createNode('paragraph', { text: 'Идеально для личных блогов и тестирования возможностей.' }),
+                    createNode('button', { text: 'Выбрать базовый', style: { width: '100%', textAlign: 'center', backgroundColor: '#64748b' } })
+                );
+
+                const plan2 = createNode('card');
+                plan2.children.push(
+                    createNode('heading', { text: 'Профессиональный', style: { fontSize: '22px' } }),
+                    createNode('heading', { text: '29 $ / мес', style: { fontSize: '32px', color: '#2563eb' } }),
+                    createNode('paragraph', { text: 'Для бизнеса и коммерческих интернет-проектов.' }),
+                    createNode('button', { text: 'Выбрать Pro', style: { width: '100%', textAlign: 'center' } })
+                );
+
+                grid.children.push(plan1, plan2);
+                sec.children.push(title, grid);
+                return sec;
+            }
+            if (sectionType === 'cta') {
+                const sec = createNode('container', { style: { padding: '50px 30px', backgroundColor: '#1e293b', color: '#ffffff', borderRadius: '20px', textAlign: 'center', marginBottom: '32px' } });
+                sec.children.push(
+                    createNode('heading', { text: 'Готовы запустить свой сайт?', style: { color: '#ffffff', textAlign: 'center', fontSize: '32px' } }),
+                    createNode('paragraph', { text: 'Присоединяйтесь к тысячам пользователей уже сегодня.', style: { color: '#94a3b8', textAlign: 'center' } }),
+                    createNode('button', { text: 'Создать проект', style: { backgroundColor: '#10b981', color: '#ffffff' } })
+                );
+                return sec;
+            }
+            if (sectionType === 'footer') {
+                const sec = createNode('container', { style: { padding: '30px 20px', borderTop: '1px solid #e2e8f0', textAlign: 'center', marginTop: '40px' } });
+                sec.children.push(
+                    createNode('paragraph', { text: '© 2026 CraftWeb Visual Builder. Все права защищены.', style: { fontSize: '13px', color: '#94a3b8', textAlign: 'center' } })
+                );
+                return sec;
+            }
+            return createNode('container');
+        }
+
+        // LocalStorage Persistence
+        function saveStateToStorage() {
+            localStorage.setItem('craftweb_state', JSON.stringify(state.projects));
+            const badge = document.getElementById('save-status-badge');
+            if (badge) {
+                badge.innerHTML = `<i class="fa-solid fa-check text-emerald-500 text-[10px]"></i> Сохранено`;
+            }
+        }
+
+        function loadStateFromStorage() {
+            const saved = localStorage.getItem('craftweb_state');
+            if (saved) {
+                try {
+                    state.projects = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Failed to parse state:', e);
+                }
+            }
+
+            // Create sample default site if empty
+            if (!state.projects || state.projects.length === 0) {
+                const defaultProject = {
+                    id: 'proj_default',
+                    title: 'Мой первый сайт',
+                    updated: new Date().toLocaleDateString('ru-RU'),
+                    publishedUrl: 'https://mysite.craftweb.app',
+                    pages: [
+                        {
+                            id: 'page_home',
+                            name: 'Главная',
+                            nodes: [
+                                createSectionTemplate('hero'),
+                                createSectionTemplate('features')
+                            ]
+                        }
+                    ]
+                };
+                state.projects = [defaultProject];
+                saveStateToStorage();
+            }
+        }
+
+        // Dashboard Rendering
+        function renderDashboard() {
+            const grid = document.getElementById('projects-grid');
+            const countEl = document.getElementById('site-count');
+            grid.innerHTML = '';
+            countEl.textContent = state.projects.length;
+
+            state.projects.forEach(proj => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition p-5 flex flex-col justify-between group';
+                card.innerHTML = `
+                    <div>
+                        <div class="h-36 bg-slate-100 rounded-xl mb-4 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-brand-50/50 transition">
+                            <i class="fa-solid fa-laptop-code text-3xl group-hover:text-brand-600 transition"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-900 text-base mb-1">${escapeHtml(proj.title)}</h3>
+                        <p class="text-xs text-slate-400">Обновлено: ${proj.updated}</p>
+                    </div>
+                    <div class="mt-6 flex items-center gap-2 pt-4 border-t border-slate-100">
+                        <button onclick="openEditor('${proj.id}')" class="flex-1 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-pen-to-square"></i> Редактор
+                        </button>
+                        <button onclick="deleteProject('${proj.id}')" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Удалить проект">
+                            <i class="fa-regular fa-trash-can text-sm"></i>
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function createNewProject() {
+            const id = 'proj_' + Math.random().toString(36).substr(2, 9);
+            const newProj = {
+                id,
+                title: 'Новый веб-сайт',
+                updated: new Date().toLocaleDateString('ru-RU'),
+                publishedUrl: `https://site-${id.substr(5)}.craftweb.app`,
+                pages: [
+                    {
+                        id: 'page_home',
+                        name: 'Главная',
+                        nodes: [ createSectionTemplate('hero') ]
+                    }
+                ]
+            };
+            state.projects.push(newProj);
+            saveStateToStorage();
+            renderDashboard();
+            openEditor(id);
+        }
+
+        function deleteProject(id) {
+            if (confirm('Вы уверены, что хотите удалить этот проект?')) {
+                state.projects = state.projects.filter(p => p.id !== id);
+                saveStateToStorage();
+                renderDashboard();
+            }
+        }
+
+        // Canvas & DOM Node Exporter Engine
+        function getCurrentProject() {
+            return state.projects.find(p => p.id === state.activeProjectId);
+        }
+
+        function getCurrentPage() {
+            const proj = getCurrentProject();
+            return proj ? proj.pages.find(p => p.id === state.activePageId) : null;
+        }
+
+        function findNodeById(nodes, id) {
+            for (const n of nodes) {
+                if (n.id === id) return n;
+                if (n.children) {
+                    const found = findNodeById(n.children, id);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        function findParentNode(nodes, childId, parent = null) {
+            for (const n of nodes) {
+                if (n.id === childId) return parent;
+                if (n.children) {
+                    const found = findParentNode(n.children, childId, n);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        function renderNodeToHtml(node, isInteractive = true) {
+            const isSelected = isInteractive && node.id === state.selectedNodeId;
+            let styleStr = Object.entries(node.style || {}).map(([k, v]) => `${camelToKebab(k)}:${v}`).join(';');
+            
+            const selectedClass = isSelected ? 'selected-node' : '';
+            const interactiveClass = isInteractive ? `builder-element ${selectedClass}` : '';
+
+            if (node.type === 'heading' || node.type === 'paragraph' || node.type === 'text') {
+                return `<${node.tag} data-id="${node.id}" class="${interactiveClass}" style="${styleStr}">${escapeHtml(node.text)}</${node.tag}>`;
+            }
+            if (node.type === 'button') {
+                return `<a href="#" onclick="return false;" data-id="${node.id}" class="${interactiveClass}" style="${styleStr}">${escapeHtml(node.text)}</a>`;
+            }
+            if (node.type === 'image') {
+                return `<img data-id="${node.id}" class="${interactiveClass}" src="${node.src}" style="${styleStr}" alt="Media" />`;
+            }
+            if (node.type === 'icon') {
+                return `<i data-id="${node.id}" class="${node.iconClass} ${interactiveClass}" style="${styleStr}"></i>`;
+            }
+            if (node.type === 'divider') {
+                return `<hr data-id="${node.id}" class="${interactiveClass}" style="${styleStr}" />`;
+            }
+            
+            // Container Types (Container, Grid, Card)
+            if (node.children) {
+                const childrenHtml = node.children.map(child => renderNodeToHtml(child, isInteractive)).join('');
+                return `<${node.tag} data-id="${node.id}" class="${interactiveClass}" style="${styleStr}">${childrenHtml}</${node.tag}>`;
+            }
+
+            return `<div data-id="${node.id}" class="${interactiveClass}" style="${styleStr}">${escapeHtml(node.text)}</div>`;
+        }
+
+        function renderCanvas() {
+            const page = getCurrentPage();
+            const rootEl = document.getElementById('website-canvas-root');
+            if (!page || !rootEl) return;
+
+            rootEl.innerHTML = page.nodes.map(n => renderNodeToHtml(n, true)).join('');
+            attachCanvasEventListeners();
+            updateSelectionToolbarPosition();
+            renderLayersTree();
+        }
+
+        function attachCanvasEventListeners() {
+            const rootEl = document.getElementById('website-canvas-root');
+            
+            rootEl.querySelectorAll('.builder-element').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = el.getAttribute('data-id');
+                    selectNode(id);
+                });
+
+                // Double click to inline edit text
+                el.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    const id = el.getAttribute('data-id');
+                    const node = findNodeById(getCurrentPage().nodes, id);
+                    if (node && (node.type === 'heading' || node.type === 'paragraph' || node.type === 'text' || node.type === 'button')) {
+                        el.setAttribute('contenteditable', 'true');
+                        el.focus();
+                        
+                        const handleBlur = () => {
+                            el.removeAttribute('contenteditable');
+                            node.text = el.innerText;
+                            saveCurrentStateToHistory();
+                            syncInspectorValues();
+                            el.removeEventListener('blur', handleBlur);
+                        };
+                        el.addEventListener('blur', handleBlur);
+                    }
+                });
+            });
+        }
+
+        function selectNode(id) {
+            state.selectedNodeId = id;
+            renderCanvas();
+            syncInspectorValues();
+        }
+
+        function updateSelectionToolbarPosition() {
+            const toolbar = document.getElementById('selection-toolbar');
+            if (!state.selectedNodeId) {
+                toolbar.classList.add('hidden');
+                return;
+            }
+
+            const activeDom = document.querySelector(`[data-id="${state.selectedNodeId}"]`);
+            if (!activeDom) {
+                toolbar.classList.add('hidden');
+                return;
+            }
+
+            const canvasViewport = document.getElementById('canvas-viewport');
+            const rect = activeDom.getBoundingClientRect();
+            const parentRect = canvasViewport.getBoundingClientRect();
+
+            const node = findNodeById(getCurrentPage().nodes, state.selectedNodeId);
+            document.getElementById('toolbar-node-tag').textContent = node ? node.type : 'node';
+
+            toolbar.classList.remove('hidden');
+            toolbar.style.top = `${rect.top - parentRect.top - 8}px`;
+            toolbar.style.left = `${rect.left - parentRect.left + 8}px`;
+        }
+
+        // Inspector Panel Syncing & Controls
+        function syncInspectorValues() {
+            const noSelMsg = document.getElementById('no-selection-msg');
+            const form = document.getElementById('inspector-form');
+            const tagBadge = document.getElementById('inspector-element-tag');
+
+            if (!state.selectedNodeId) {
+                noSelMsg.classList.remove('hidden');
+                form.classList.add('hidden');
+                tagBadge.textContent = 'None';
+                return;
+            }
+
+            const page = getCurrentPage();
+            const node = findNodeById(page.nodes, state.selectedNodeId);
+            if (!node) return;
+
+            noSelMsg.classList.add('hidden');
+            form.classList.remove('hidden');
+            tagBadge.textContent = node.type;
+
+            // Content input visibility
+            const groupContent = document.getElementById('group-content');
+            const groupImage = document.getElementById('group-image-src');
+            const fieldText = document.getElementById('field-text-content');
+            const fieldImage = document.getElementById('field-image-src');
+
+            if (node.type === 'image') {
+                groupContent.classList.add('hidden');
+                groupImage.classList.remove('hidden');
+                fieldImage.value = node.src || '';
+            } else {
+                groupContent.classList.remove('hidden');
+                groupImage.classList.add('hidden');
+                fieldText.value = node.text || '';
+            }
+
+            // Typography Inputs
+            document.getElementById('field-font-size').value = parseInt(node.style.fontSize) || '';
+            document.getElementById('field-font-weight').value = node.style.fontWeight || '400';
+            document.getElementById('field-text-color').value = rgbToHex(node.style.color) || '#000000';
+            document.getElementById('field-text-color-hex').value = rgbToHex(node.style.color) || '#000000';
+
+            // Background & Spacing Inputs
+            document.getElementById('field-bg-color').value = rgbToHex(node.style.backgroundColor) || '#ffffff';
+            document.getElementById('field-bg-color-hex').value = rgbToHex(node.style.backgroundColor) || '#ffffff';
+            document.getElementById('field-padding').value = node.style.padding || '';
+            document.getElementById('field-margin').value = node.style.margin || '';
+
+            // Border & Shadow
+            document.getElementById('field-border-radius').value = parseInt(node.style.borderRadius) || '';
+            document.getElementById('field-box-shadow').value = node.style.boxShadow || 'none';
+        }
+
+        function bindInspectorEvents() {
+            const updateSelectedStyle = (key, val) => {
+                if (!state.selectedNodeId) return;
+                const node = findNodeById(getCurrentPage().nodes, state.selectedNodeId);
+                if (node) {
+                    node.style[key] = val;
+                    renderCanvas();
+                    saveCurrentStateToHistory();
+                }
+            };
+
+            document.getElementById('field-text-content').addEventListener('input', (e) => {
+                const node = findNodeById(getCurrentPage().nodes, state.selectedNodeId);
+                if (node) {
+                    node.text = e.target.value;
+                    renderCanvas();
+                    saveCurrentStateToHistory();
+                }
+            });
+
+            document.getElementById('field-image-src').addEventListener('input', (e) => {
+                const node = findNodeById(getCurrentPage().nodes, state.selectedNodeId);
+                if (node) {
+                    node.src = e.target.value;
+                    renderCanvas();
+                    saveCurrentStateToHistory();
+                }
+            });
+
+            document.getElementById('field-font-size').addEventListener('input', (e) => updateSelectedStyle('fontSize', e.target.value ? e.target.value + 'px' : ''));
+            document.getElementById('field-font-weight').addEventListener('change', (e) => updateSelectedStyle('fontWeight', e.target.value));
+            
+            document.getElementById('field-text-color').addEventListener('input', (e) => {
+                document.getElementById('field-text-color-hex').value = e.target.value;
+                updateSelectedStyle('color', e.target.value);
+            });
+            document.getElementById('field-bg-color').addEventListener('input', (e) => {
+                document.getElementById('field-bg-color-hex').value = e.target.value;
+                updateSelectedStyle('backgroundColor', e.target.value);
+            });
+
+            document.getElementById('field-padding').addEventListener('input', (e) => updateSelectedStyle('padding', e.target.value));
+            document.getElementById('field-margin').addEventListener('input', (e) => updateSelectedStyle('margin', e.target.value));
+            document.getElementById('field-border-radius').addEventListener('input', (e) => updateSelectedStyle('borderRadius', e.target.value ? e.target.value + 'px' : ''));
+            document.getElementById('field-box-shadow').addEventListener('change', (e) => updateSelectedStyle('boxShadow', e.target.value));
+
+            // Align buttons
+            document.querySelectorAll('.align-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const align = btn.getAttribute('data-align');
+                    updateSelectedStyle('textAlign', align);
+                });
+            });
+        }
+
+        // Layers Tree View
+        function renderLayersTree() {
+            const container = document.getElementById('layers-tree-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const page = getCurrentPage();
+            if (!page) return;
+
+            function buildTree(nodes, level = 0) {
+                nodes.forEach(node => {
+                    const isSelected = node.id === state.selectedNodeId;
+                    const item = document.createElement('div');
+                    item.className = `px-3 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer transition ${isSelected ? 'bg-brand-50 text-brand-600 font-semibold border border-brand-200' : 'hover:bg-slate-100 text-slate-700'}`;
+                    item.style.paddingLeft = `${(level * 12) + 12}px`;
+                    
+                    item.innerHTML = `
+                        <div class="flex items-center gap-2 truncate">
+                            <i class="fa-solid ${node.children ? 'fa-folder' : 'fa-cube'} text-[10px] text-slate-400"></i>
+                            <span class="truncate">${node.type}</span>
+                        </div>
+                    `;
+
+                    item.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        selectNode(node.id);
+                    });
+
+                    container.appendChild(item);
+
+                    if (node.children) {
+                        buildTree(node.children, level + 1);
+                    }
+                });
+            }
+
+            buildTree(page.nodes);
+        }
+
+        // Node Manipulation Actions
+        function addNodeToCanvas(type) {
+            const page = getCurrentPage();
+            if (!page) return;
+
+            const newNode = createNode(type);
+
+            if (state.selectedNodeId) {
+                const targetNode = findNodeById(page.nodes, state.selectedNodeId);
+                if (targetNode && targetNode.children) {
+                    targetNode.children.push(newNode);
+                } else {
+                    const parent = findParentNode(page.nodes, state.selectedNodeId);
+                    if (parent) {
+                        parent.children.push(newNode);
+                    } else {
+                        page.nodes.push(newNode);
+                    }
+                }
+            } else {
+                page.nodes.push(newNode);
+            }
+
+            renderCanvas();
+            selectNode(newNode.id);
+            saveCurrentStateToHistory();
+        }
+
+        function addSectionToCanvas(sectionType) {
+            const page = getCurrentPage();
+            if (!page) return;
+
+            const section = createSectionTemplate(sectionType);
+            page.nodes.push(section);
+
+            renderCanvas();
+            selectNode(section.id);
+            saveCurrentStateToHistory();
+        }
+
+        function deleteSelectedNode() {
+            if (!state.selectedNodeId) return;
+            const page = getCurrentPage();
+            
+            function filterNodes(nodes) {
+                return nodes.filter(n => {
+                    if (n.id === state.selectedNodeId) return false;
+                    if (n.children) n.children = filterNodes(n.children);
+                    return true;
+                });
+            }
+
+            page.nodes = filterNodes(page.nodes);
+            state.selectedNodeId = null;
+            renderCanvas();
+            syncInspectorValues();
+            saveCurrentStateToHistory();
+        }
+
+        function duplicateSelectedNode() {
+            if (!state.selectedNodeId) return;
+            const page = getCurrentPage();
+            const node = findNodeById(page.nodes, state.selectedNodeId);
+            if (!node) return;
+
+            const clone = JSON.parse(JSON.stringify(node));
+            
+            function reid(n) {
+                n.id = 'node_' + Math.random().toString(36).substr(2, 9);
+                if (n.children) n.children.forEach(reid);
+            }
+            reid(clone);
+
+            const parent = findParentNode(page.nodes, state.selectedNodeId);
+            if (parent) {
+                const idx = parent.children.findIndex(x => x.id === state.selectedNodeId);
+                parent.children.splice(idx + 1, 0, clone);
+            } else {
+                const idx = page.nodes.findIndex(x => x.id === state.selectedNodeId);
+                page.nodes.splice(idx + 1, 0, clone);
+            }
+
+            renderCanvas();
+            selectNode(clone.id);
+            saveCurrentStateToHistory();
+        }
+
+        function saveCurrentStateToHistory() {
+            const page = getCurrentPage();
+            if (!page) return;
+
+            // Truncate redo stack
+            state.history = state.history.slice(0, state.historyIndex + 1);
+            state.history.push(JSON.stringify(page.nodes));
+            state.historyIndex++;
+
+            const badge = document.getElementById('save-status-badge');
+            if (badge) {
+                badge.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-brand-500 text-[10px]"></i> Сохранение...`;
+            }
+            setTimeout(saveStateToStorage, 400);
+
+            updateUndoRedoButtons();
+        }
+
+        function undo() {
+            if (state.historyIndex > 0) {
+                state.historyIndex--;
+                const page = getCurrentPage();
+                page.nodes = JSON.parse(state.history[state.historyIndex]);
+                renderCanvas();
+                syncInspectorValues();
+                updateUndoRedoButtons();
+            }
+        }
+
+        function redo() {
+            if (state.historyIndex < state.history.length - 1) {
+                state.historyIndex++;
+                const page = getCurrentPage();
+                page.nodes = JSON.parse(state.history[state.historyIndex]);
+                renderCanvas();
+                syncInspectorValues();
+                updateUndoRedoButtons();
+            }
+        }
+
+        function updateUndoRedoButtons() {
+            document.getElementById('btn-undo').disabled = state.historyIndex <= 0;
+            document.getElementById('btn-redo').disabled = state.historyIndex >= state.history.length - 1;
+        }
+
+        // Clean Standalone HTML Generator
+        function generateCompleteHtml() {
+            const page = getCurrentPage();
+            if (!page) return '';
+
+            const bodyHtml = page.nodes.map(n => renderNodeToHtml(n, false)).join('\n');
+
+            return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${escapeHtml(getCurrentProject().title)}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"><\/script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-white text-slate-800">
+${bodyHtml}
+</body>
+</html>`;
+        }
+
+        // Navigation & View Switches
+        function openEditor(projectId) {
+            state.activeProjectId = projectId;
+            const proj = getCurrentProject();
+            state.activePageId = proj.pages[0].id;
+            
+            document.getElementById('input-site-title').value = proj.title;
+
+            // Init history
+            state.history = [JSON.stringify(proj.pages[0].nodes)];
+            state.historyIndex = 0;
+
+            document.getElementById('view-dashboard').classList.add('hidden');
+            document.getElementById('view-editor').classList.remove('hidden');
+
+            renderPageSelector();
+            renderCanvas();
+            renderAssetsGrid();
+            syncInspectorValues();
+            updateUndoRedoButtons();
+        }
+
+        function renderPageSelector() {
+            const select = document.getElementById('editor-page-select');
+            const proj = getCurrentProject();
+            select.innerHTML = '';
+
+            proj.pages.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                select.appendChild(opt);
+            });
+            select.value = state.activePageId;
+
+            // Render Pages List in Tab
+            const list = document.getElementById('pages-list');
+            list.innerHTML = '';
+            proj.pages.forEach(p => {
+                const item = document.createElement('div');
+                item.className = `p-2 rounded-lg text-xs flex items-center justify-between cursor-pointer ${p.id === state.activePageId ? 'bg-brand-50 text-brand-600 font-semibold' : 'hover:bg-slate-100 text-slate-700'}`;
+                item.innerHTML = `<span><i class="fa-regular fa-file mr-2"></i>${escapeHtml(p.name)}</span>`;
+                item.onclick = () => {
+                    state.activePageId = p.id;
+                    renderPageSelector();
+                    renderCanvas();
+                };
+                list.appendChild(item);
+            });
+        }
+
+        function renderAssetsGrid() {
+            const grid = document.getElementById('assets-grid');
+            grid.innerHTML = '';
+            state.sampleAssets.forEach(url => {
+                const img = document.createElement('div');
+                img.className = 'h-20 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:border-brand-500 transition group relative';
+                img.innerHTML = `<img src="${url}" class="w-full h-full object-cover" />`;
+                img.onclick = () => {
+                    if (state.selectedNodeId) {
+                        const node = findNodeById(getCurrentPage().nodes, state.selectedNodeId);
+                        if (node && node.type === 'image') {
+                            node.src = url;
+                            renderCanvas();
+                            syncInspectorValues();
+                            saveCurrentStateToHistory();
+                        }
+                    }
+                };
+                grid.appendChild(img);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStateFromStorage();
+            renderDashboard();
+
+            // Dashboard buttons
+            document.getElementById('btn-dashboard-new').addEventListener('click', createNewProject);
+            document.getElementById('btn-back-dashboard').addEventListener('click', () => {
+                document.getElementById('view-editor').classList.add('hidden');
+                document.getElementById('view-dashboard').classList.remove('hidden');
+                renderDashboard();
+            });
+
+            // Site Title Update
+            document.getElementById('input-site-title').addEventListener('change', (e) => {
+                const proj = getCurrentProject();
+                if (proj) {
+                    proj.title = e.target.value;
+                    saveStateToStorage();
+                }
+            });
+
+            // Tab Switching (Left Sidebar)
+            document.querySelectorAll('.left-tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.left-tab-btn').forEach(b => {
+                        b.classList.remove('active', 'text-brand-600', 'border-b-2', 'border-brand-600');
+                        b.classList.add('text-slate-500');
+                    });
+                    btn.classList.add('active', 'text-brand-600', 'border-b-2', 'border-brand-600');
+                    btn.classList.remove('text-slate-500');
+
+                    const targetTab = btn.getAttribute('data-tab');
+                    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
+                    document.getElementById(`tab-${targetTab}`).classList.remove('hidden');
+                });
+            });
+
+            // Add Element Click Listeners
+            document.querySelectorAll('.add-element-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const type = btn.getAttribute('data-type');
+                    addNodeToCanvas(type);
+                });
+            });
+
+            // Add Section Click Listeners
+            document.querySelectorAll('.add-section-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const stype = btn.getAttribute('data-section-type');
+                    addSectionToCanvas(stype);
+                });
+            });
+
+            // Selection Toolbar Actions
+            document.getElementById('tb-delete').addEventListener('click', deleteSelectedNode);
+            document.getElementById('tb-duplicate').addEventListener('click', duplicateSelectedNode);
+            document.getElementById('tb-select-parent').addEventListener('click', () => {
+                if (!state.selectedNodeId) return;
+                const parent = findParentNode(getCurrentPage().nodes, state.selectedNodeId);
+                if (parent) selectNode(parent.id);
+            });
+
+            // Device Switcher
+            const canvasViewport = document.getElementById('canvas-viewport');
+            document.getElementById('dev-desktop').addEventListener('click', () => {
+                canvasViewport.style.width = '1100px';
+            });
+            document.getElementById('dev-tablet').addEventListener('click', () => {
+                canvasViewport.style.width = '768px';
+            });
+            document.getElementById('dev-mobile').addEventListener('click', () => {
+                canvasViewport.style.width = '375px';
+            });
+
+            // Zoom Controls
+            document.getElementById('zoom-in').addEventListener('click', () => {
+                if (state.zoomLevel < 150) state.zoomLevel += 10;
+                applyZoom();
+            });
+            document.getElementById('zoom-out').addEventListener('click', () => {
+                if (state.zoomLevel > 50) state.zoomLevel -= 10;
+                applyZoom();
+            });
+            document.getElementById('zoom-reset').addEventListener('click', () => {
+                state.zoomLevel = 100;
+                applyZoom();
+            });
+
+            function applyZoom() {
+                canvasViewport.style.transform = `scale(${state.zoomLevel / 100})`;
+                document.getElementById('zoom-value').textContent = `${state.zoomLevel}%`;
+            }
+
+            // Undo / Redo
+            document.getElementById('btn-undo').addEventListener('click', undo);
+            document.getElementById('btn-redo').addEventListener('click', redo);
+
+            // Bind Inspector Events
+            bindInspectorEvents();
+
+            // Code Modal
+            document.getElementById('btn-view-code').addEventListener('click', () => {
+                const modal = document.getElementById('modal-code');
+                const textarea = document.getElementById('code-output');
+                textarea.value = generateCompleteHtml();
+                modal.classList.remove('hidden');
+            });
+
+            document.getElementById('btn-copy-code').addEventListener('click', () => {
+                const textarea = document.getElementById('code-output');
+                textarea.select();
+                document.execCommand('copy');
+                alert('Код скопирован в буфер обмена!');
+            });
+
+            // Download HTML
+            document.getElementById('btn-download-html').addEventListener('click', () => {
+                const code = generateCompleteHtml();
+                const blob = new Blob([code], { type: 'text/html' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `${getCurrentProject().title.toLowerCase().replace(/\s+/g, '-')}.html`;
+                a.click();
+            });
+
+            // Publish Modal
+            document.getElementById('btn-publish').addEventListener('click', () => {
+                const proj = getCurrentProject();
+                const modal = document.getElementById('modal-publish');
+                document.getElementById('published-url-input').value = proj.publishedUrl;
+                document.getElementById('published-url-link').href = '#';
+                modal.classList.remove('hidden');
+            });
+
+            document.getElementById('btn-copy-url').addEventListener('click', () => {
+                const input = document.getElementById('published-url-input');
+                input.select();
+                document.execCommand('copy');
+                alert('Ссылка скопирована!');
+            });
+
+            // Preview Mode
+            document.getElementById('btn-preview-mode').addEventListener('click', () => {
+                const modal = document.getElementById('modal-preview');
+                const iframe = document.getElementById('preview-iframe');
+                modal.classList.remove('hidden');
+                
+                const doc = iframe.contentWindow.document;
+                doc.open();
+                doc.write(generateCompleteHtml());
+                doc.close();
+            });
+
+            document.getElementById('btn-exit-preview').addEventListener('click', () => {
+                document.getElementById('modal-preview').classList.add('hidden');
+            });
+
+            // Modal Closes
+            document.querySelectorAll('.modal-close').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.fixed').forEach(m => {
+                        if (m.id !== 'selection-toolbar') m.classList.add('hidden');
+                    });
+                });
+            });
+
+            // Add Page Button
+            document.getElementById('btn-add-page').addEventListener('click', () => {
+                const name = prompt('Введите название новой страницы:', 'Новая страница');
+                if (name) {
+                    const proj = getCurrentProject();
+                    const newPage = {
+                        id: 'page_' + Math.random().toString(36).substr(2, 9),
+                        name,
+                        nodes: [ createSectionTemplate('hero') ]
+                    };
+                    proj.pages.push(newPage);
+                    state.activePageId = newPage.id;
+                    saveStateToStorage();
+                    renderPageSelector();
+                    renderCanvas();
+                }
+            });
+        });
+
+        // Utility functions
+        function escapeHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function camelToKebab(str) {
+            return str.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase();
+        }
+
+        function rgbToHex(rgbStr) {
+            if (!rgbStr) return '#ffffff';
+            if (rgbStr.startsWith('#')) return rgbStr;
+            const match = rgbStr.match(/\d+/g);
+            if (!match || match.length < 3) return '#ffffff';
+            const r = parseInt(match[0]).toString(16).padStart(2, '0');
+            const g = parseInt(match[1]).toString(16).padStart(2, '0');
+            const b = parseInt(match[2]).toString(16).padStart(2, '0');
+            return `#${r}${g}${b}`;
+        }
+    </script>
+</body>
+</html>
